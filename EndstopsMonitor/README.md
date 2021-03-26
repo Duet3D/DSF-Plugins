@@ -22,5 +22,4 @@ This is a very simple demonstration for a DWC-only plugin (v3.3 and later). It l
 ```
 3. By performing this step, the plugin is registered as a built-in plugin. To test it, run `npm run serve` and activate it using the Settings -> General page
 4. To build the final Webpack chunk, run `npm run build` and copy the resulting `EndstopsMonitor` CSS and JS files to `zip/dwc`
-5. Look for the resulting JS entry point in `zip/dwc/js` which is named like `EndstopsMonitor.[hash].js`. Copy that filename and replace `dwcWebpackChunk` with it
 5. Compress the files in the `zip` directory to a single file. The resulting bundle should be installable using the DWC plugin wizard
