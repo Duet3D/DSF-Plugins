@@ -2,7 +2,7 @@
 
 ## Description
 
-This is a very simple demonstration for a DWC-only plugin (v3.3 and later). It lets users monitor the endstops interactively like in previous DWC versions. When loaded it creates a new "Endstops" tab on the Settings -> Machine page.
+This is a very simple demonstration for a DWC-only plugin (v3.4 and later). It lets users monitor the endstops interactively like in previous DWC versions. When loaded it creates a new "Endstops" tab on the Settings -> Machine page.
 
 ## Build instructions
 
