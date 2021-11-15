@@ -30,8 +30,8 @@ This is a very simple demonstration for a DWC-only plugin (v3.4 and later). It l
 ```
 4. By performing this step, the plugin is registered as a built-in plugin. To test it, run `npm run serve` and activate it using the Settings -> General page
 5. Now you have two choices:
-6. a) Copy `plugin.json` to the new `src/plugins/EndstopsMonitor` directory
-   b) Run `npm run build-plugin EndstopsMonitor` to generate the plugin ZIP file
-7. a) Build DWC by running `npm run build`
-   b) Create a new ZIP file and add `plugin.json` to the root level
-   c) Compress the resulting `EndstopsMonitor` CSS and JS files from `dist/css` and `dist/js` under `dwc/css` and `dwc/js`
+6. - Copy `plugin.json` to the new `src/plugins/EndstopsMonitor` directory
+   - Run `npm run build-plugin EndstopsMonitor` to generate the plugin ZIP file
+7. - Build DWC by running `npm run build`
+   - Create a new ZIP file and add `plugin.json` to the root level
+   - Compress the resulting `EndstopsMonitor` CSS and JS files from `dist/css` and `dist/js` under `dwc/css` and `dwc/js`
