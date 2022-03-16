@@ -2,8 +2,8 @@
   "id": "EndstopsMonitor",
   "name": "Endstops Monitor",
   "author": "Duet3D Ltd",
-  "version": "3.3.0",
+  "version": "auto",
   "license": "GPL-3.0-or-later",
   "homepage": "https://github.com/Duet3D/DSF-Plugins",
-  "dwcVersion": "3.3"
+  "dwcVersion": "auto"
 }
