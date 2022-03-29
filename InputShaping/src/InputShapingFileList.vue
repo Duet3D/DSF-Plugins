@@ -142,7 +142,7 @@ export default {
 			// Convert files into profile groups with files
 			const profiles = [], uncategorized = [];
 			for (let filename of this.files) {
-				const matches = /(\d+)-([a-zA-Z]+)(\d+\.?\d*)-(\d+\.?\d*)-(\d+\.?\d*)-(\w+)[-]?(\d+\.?\d*)?(Hz)?\.csv/.exec(filename);
+				const matches = /^(\d+)-([a-zA-SU-Z]+)(\d+\.?\d*)-(\d+\.?\d*)-(\d+\.?\d*)-(\w+)[-]?(\d+\.?\d*)?(Hz)?\.csv/.exec(filename);
 				if (matches) {
 					const title = `Profile #${matches[1]}`;
 					let run = profiles.find(profile => profile.title === title);
@@ -163,9 +163,9 @@ export default {
 						shaperTitle
 					});
 				} else {
-					const toolMatches = /(\d+)-T(\d+)-([a-zA-Z]+)(\d+\.?\d*)-(\d+\.?\d*)-(\d+\.?\d*)-(\w+)[-]?(\d+\.?\d*)?(Hz)?\.csv/.exec(filename);
+					const toolMatches = /^(\d+)-T(\d+)-([a-zA-Z]+)(\d+\.?\d*)-(\d+\.?\d*)-(\d+\.?\d*)-(\w+)[-]?(\d+\.?\d*)?(Hz)?\.csv/.exec(filename);
 					if (toolMatches) {
-						const title = `Profile #${matches[1]}`;
+						const title = `Profile #${toolMatches[1]}`;
 						let run = profiles.find(profile => profile.title === title);
 						if (!run) {
 							run = {
@@ -177,9 +177,9 @@ export default {
 							profiles.push(run);
 						}
 
-						const shaperTitle = (matches[7] === 'none') ? 'No Shaping' : ((matches[7] === 'custom') ? 'Custom' : `${matches[7].toUpperCase()} @ ${matches[8]}Hz`);
+						const shaperTitle = (toolMatches[7] === 'none') ? 'No Shaping' : ((toolMatches[7] === 'custom') ? 'Custom' : `${toolMatches[7].toUpperCase()} @ ${toolMatches[8]}Hz`);
 						run.files.push({
-							title: `T${matches[2]}, ${matches[3].split('').reduce((a, b) => `${a}+${b}`)} ${matches[4]}-${matches[5]}, accelerometer ${matches[6]}, ${shaperTitle}`,
+							title: `T${toolMatches[2]}, ${toolMatches[3].split('').reduce((a, b) => `${a}+${b}`)} ${toolMatches[4]}-${toolMatches[5]}, accelerometer ${toolMatches[6]}, ${shaperTitle}`,
 							filename,
 							shaperTitle
 						});
