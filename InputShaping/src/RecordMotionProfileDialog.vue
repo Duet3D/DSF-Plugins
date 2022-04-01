@@ -27,7 +27,7 @@
 						<ul class="mt-3 mb-4">
 							<li>Motion Profile #{{ this.run }}</li>
 							<li>Input Shaper: {{ this.shaper }}</li>
-							<li v-show="frequency !== null">Ringing Frequency: {{ frequency }}</li>
+							<li v-show="frequency !== null">Shaper Frequency: {{ frequency }}</li>
 							<li v-show="damping !== null">Damping Factor: {{ damping }}</li>
 							<li v-show="amplitudes !== null">Amplitudes: {{ amplitudes }}</li>
 							<li v-show="durations !== null">Durations: {{ durations }}</li>
@@ -56,10 +56,11 @@
 
 					<!-- Configuration -->
 					<v-window-item value="config">
-						Here you can define different moves for the data collection.
+						<div class="d-flex flex-column">
+							Here you can define different moves for the data collection.
 
-						<v-simple-table class="mt-1">
-							<thead>
+							<v-simple-table class="mt-1">
+								<thead>
 								<tr>
 									<th class="px-0">
 										Tool
@@ -78,17 +79,17 @@
 									</th>
 									<th></th>
 								</tr>
-							</thead>
-							<tbody>
+								</thead>
+								<tbody>
 								<tr v-for="(move, index) in moves" :key="index">
 									<td class="px-0">
-										<v-select v-model="move.tool" :items="toolList" class="pt-0" hide-details/>
+										<v-select :value="move.tool" @change="setMoveTool(move, $event)" :items="toolList" class="pt-0" hide-details/>
 									</td>
 									<td>
 										<v-select v-model="move.accelerometer" :items="accelerometers" :rules="[val => !!val]" class="pt-0" hide-details/>
 									</td>
 									<td class="px-0">
-										<v-select v-model="move.axis" :items="['X', 'Y', 'X+Y']" class="pt-0" hide-details/>
+										<v-select :value="move.axis" @change="setMoveAxis(move, $event)" :items="['X', 'Y', 'X+Y']" class="pt-0" hide-details/>
 									</td>
 									<td class="pr-0">
 										<v-text-field v-model.number="move.start" type="number" :min="getMin(move, true)" :max="getMax(move, true)" :rules="getRules(move, true)" class="pt-0" hide-details/>
@@ -97,20 +98,35 @@
 										<v-text-field v-model.number="move.end" type="number" :min="getMin(move, false)" :max="getMax(move, false)" :rules="getRules(move, false)" class="pt-0" hide-details/>
 									</td>
 									<td class="px-0">
-										<v-btn color="warning" :disabled="moves.length <= 1" @click="removeMove(index)">
+										<v-btn color="warning" outlined :disabled="moves.length <= 1" @click="removeMove(index)">
 											<v-icon>mdi-delete</v-icon>
 										</v-btn>
 									</td>
 								</tr>
-							</tbody>
-						</v-simple-table>
-						<v-divider class="mb-3"/>
+								</tbody>
+							</v-simple-table>
+							<v-divider class="mb-3"/>
 
-						<v-alert :value="hasExternalAccelerometers" type="info" dense class="mb-3 mt-0">
-							This machine appears to have expansion boards with embedded accelerometers. If you are operating a tool changer, it is recommended to set the corresponding tool for each accelerometer.
-						</v-alert>
+							<v-btn color="blue darken-1" class="mx-auto" outlined text @click="addMove">
+								<v-icon class="mr-1">mdi-plus</v-icon>
+								Add Move
+							</v-btn>
 
-						The machine will record a new Motion Profile as soon as Next is clicked.
+							<v-alert :value="hasExternalAccelerometers" type="info" dense class="mt-3">
+								This machine appears to have expansion boards with embedded accelerometers. If you are operating a tool changer, it is recommended to set the corresponding tool for each accelerometer.
+							</v-alert>
+
+							<v-checkbox class="my-2" v-model="centerAxes" label="Centre unused axes before each move" :ripple="false" hide-details/>
+							<div v-show="centerAxes" class="mx-9">
+								<div class="d-inline-flex">
+									<v-text-field type="number" v-model.number="xAxisCenter" label="X axis centre position" :min="xAxis.min" :max="xAxis.max" step="1" :rules="[(val) => !isNaN(val) && val >= xAxis.min && val <= xAxis.max]"/>
+									<v-text-field type="number" class="ml-5" v-model.number="yAxisCenter" label="Y axis centre position" :min="xAxis.min" :max="xAxis.max" step="1" :rules="[(val) => !isNaN(val) && val >= yAxis.min && val <= yAxis.max]"/>
+									<v-text-field v-show="showZCenter" type="number" class="ml-5" v-model.number="zAxisCenter" label="Z axis centre position" :rules="[(val) => !isNaN(val) && val >= zAxis.min && val <= zAxis.max]"/>
+								</div>
+							</div>
+
+							The machine will record a new Motion Profile as soon as Next is clicked.
+						</div>
 					</v-window-item>
 
 					<!-- Data Collection -->
@@ -121,55 +137,58 @@
 
 						<v-simple-table class="mt-1">
 							<thead>
-								<tr>
-									<th class="px-0"></th>
-									<th>
-										Tool
-									</th>
-									<th class="px-0">
-										Accelerometer
-									</th>
-									<th>
-										Axis
-									</th>
-									<th class="px-0">
-										Start Position
-									</th>
-									<th>
-										End Position
-									</th>
-								</tr>
+							<tr>
+								<th class="px-0"></th>
+								<th>
+									Tool
+								</th>
+								<th class="px-0">
+									Accelerometer
+								</th>
+								<th>
+									Axis
+								</th>
+								<th class="px-0">
+									Start Position
+								</th>
+								<th>
+									End Position
+								</th>
+							</tr>
 							</thead>
 							<tbody>
-								<tr v-for="(move, index) in moves" :key="index">
-									<td class="px-0">
-										<v-icon>
-											{{ getMoveIcon(move) }}
-										</v-icon>
-									</td>
-									<td>
-										{{ move.tool ? (move.tool.name || `T${move.tool.number}`) : 'None' }}
-									</td>
-									<td class="px-0">
-										{{ getAccelerometerId(move.accelerometer) }}
-									</td>
-									<td>
-										{{ move.axis }}
-									</td>
-									<td class="px-0">
-										{{ move.start }}
-									</td>
-									<td>
-										{{ move.end }}
-									</td>
-								</tr>
+							<tr v-for="(move, index) in moves" :key="index">
+								<td class="px-0">
+									<v-icon>
+										{{ getMoveIcon(move) }}
+									</v-icon>
+								</td>
+								<td>
+									{{ move.tool ? (move.tool.name || `T${move.tool.number}`) : 'None' }}
+								</td>
+								<td class="px-0">
+									{{ getAccelerometerId(move.accelerometer) }}
+								</td>
+								<td>
+									{{ move.axis }}
+								</td>
+								<td class="px-0">
+									{{ move.start }}
+								</td>
+								<td>
+									{{ move.end }}
+								</td>
+							</tr>
 							</tbody>
 						</v-simple-table>
 						<v-divider/>
 
-						<div v-show="finished" class="mt-3">
-							Recording of Motion Profile #{{ this.run }} is complete! Press Finish to close this dialog.
-						</div>
+						<v-alert :value="cancelled" dense text type="error" class="mt-3">
+							Data collection cancelled!
+						</v-alert>
+						<v-alert :value="finished" dense text type="success" class="mt-3">
+							Recording of Motion Profile #{{ this.run }} is complete!
+						</v-alert>
 					</v-window-item>
 				</v-window>
 			</v-card-text>
@@ -179,12 +198,6 @@
 					Cancel
 				</v-btn>
 				<v-spacer/>
-				<template v-if="currentPage === 'config'">
-					<v-btn color="blue darken-1" text @click="addMove">
-						Add Move
-					</v-btn>
-					<v-spacer/>
-				</template>
 				<v-btn v-show="canGoBack" color="blue darken-1" text @click="goBack">
 					Back
 				</v-btn>
@@ -204,7 +217,9 @@
 
 import { mapActions, mapState } from 'vuex'
 
+import { Axis } from '@/store/machine/modelItems'
 import { OperationCancelledError } from '@/utils/errors'
+import { KinematicsName, StatusType } from "@/store/machine/modelEnums";
 
 const MoveState = {
 	idle: 'idle',
@@ -225,7 +240,10 @@ export default {
 		}
 	},
 	computed: {
-		...mapState('machine/model', ['boards', 'move', 'tools']),
+		...mapState('machine/model', ['boards', 'move', 'tools', 'state']),
+		xAxis() { return this.move.axes.find(axis => axis.letter === 'X') || new Axis(); },
+		yAxis() { return this.move.axes.find(axis => axis.letter === 'Y') || new Axis(); },
+		zAxis() { return this.move.axes.find(axis => axis.letter === 'Z') || new Axis(); },
 		shownInternal: {
 			get() { return this.shown },
 			set(value) { this.$emit('update:shown', value); }
@@ -265,10 +283,13 @@ export default {
 		},
 		toolList() {
 			return [{ text: 'None', value: null }].concat(this.tools
-						.map(tool => ({
-							text: tool.name || tool.number.toString(),
-							value: tool
-						})));
+				.map(tool => ({
+					text: tool.name || tool.number.toString(),
+					value: tool
+				})));
+		},
+		showZCenter() {
+			return [KinematicsName.delta, KinematicsName.rotaryDelta, KinematicsName.coreXZ].includes(this.move.kinematics.name);
 		},
 		maxSpeed() {
 			let maxSpeed = 6000;
@@ -280,10 +301,7 @@ export default {
 			return this.moves.some(move => move.axis.length > 1) ? Math.round(maxSpeed * Math.sqrt(2)) : maxSpeed;
 		},
 		canGoBack() {
-			switch (this.currentPage) {
-				case 'config': return true;
-			}
-			return false;
+			return this.currentPage === 'config';
 		},
 		canGoNext() {
 			switch (this.currentPage) {
@@ -296,7 +314,10 @@ export default {
 							return false;
 						}
 					}
-					return (this.moves.length > 0);
+					return (this.moves.length > 0) && (!this.centerAxes || (
+						!isNaN(this.xAxisCenter) && this.xAxisCenter >= this.xAxis.min && this.xAxisCenter < this.xAxis.max &&
+						!isNaN(this.yAxisCenter) && this.yAxisCenter >= this.yAxis.min && this.yAxisCenter < this.yAxis.max &&
+						((!isNaN(this.zAxisCenter) && this.zAxisCenter >= this.zAxis.min && this.zAxisCenter < this.zAxis.max) || !this.showZCenter)));
 			}
 			return false;
 		}
@@ -305,14 +326,31 @@ export default {
 		return {
 			currentPage: 'start',
 			moves: [],
+			centerAxes: true,
+			xAxisCenter: 0,
+			yAxisCenter: 0,
+			zAxisCenter: 0,
 			run: 0,
 			finished: false,
-			cancelled: false,
+			cancelled: false
 		}
 	},
 	methods: {
 		...mapActions('machine', ['sendCode']),
+		refreshCenters() {
+			if (this.currentPage === 'collection') {
+				return;
+			}
+
+			this.xAxisCenter = (this.xAxis.min + this.xAxis.max) / 2;
+			this.yAxisCenter = (this.yAxis.min + this.yAxis.max) / 2;
+			this.zAxisCenter = (this.zAxis.min + this.zAxis.max) / 2;
+		},
 		makeMoves() {
+			if (this.currentPage === 'collection') {
+				return;
+			}
+
 			this.moves = this.move.axes
 				.filter(axis => axis.letter === 'X' || axis.letter === 'Y')
 				.map(axis => ({
@@ -320,19 +358,50 @@ export default {
 					tool: null,
 					accelerometer: (this.accelerometers.length > 0) ? this.accelerometers[0].value : null,
 					axis: axis.letter,
-					start: Math.round((axis.max - axis.min) * 0.25),
-					end: Math.round((axis.max - axis.min) * 0.75),
+					start: Math.round((axis.min + axis.max) / 2 - (axis.max - axis.min) / 4),
+					end: Math.round((axis.min + axis.max) / 2 + (axis.max - axis.min) / 4),
 				}));
 		},
 		addMove() {
+			const xAxis = this.move.axes.find(axis => axis.letter === 'X');
 			this.moves.push({
 				state: MoveState.idle,
 				tool: null,
 				accelerometer: (this.accelerometers.length > 0) ? this.accelerometers[0].value : null,
 				axis: 'X',
-				start: null,
-				end: null
+				start: xAxis ? Math.round((xAxis.min + xAxis.max) / 2 - (xAxis.max - xAxis.min) / 4) : null,
+				end: xAxis ? Math.round((xAxis.min + xAxis.max) / 2 + (xAxis.max - xAxis.min) / 4) : null
 			});
+		},
+		setMoveTool(move, tool) {
+			const axisIndex = this.move.axes.findIndex(axis => axis.letter === move.axis);
+			if (axisIndex >= 0) {
+				if (move.tool) {
+					// Subtract old tool offset
+					move.start -= move.tool.offsets[axisIndex];
+					move.end -= move.tool.offsets[axisIndex];
+				}
+
+				if (tool) {
+					// Add new tool offset
+					move.start += tool.offsets[axisIndex];
+					move.end += tool.offsets[axisIndex];
+				}
+			}
+			move.tool = tool;
+		},
+		setMoveAxis(move, axis) {
+			const axisObj = this.move.axes.find(obj => obj.letter === axis);
+			if (axisObj) {
+				const axisIndex = this.move.axes.findIndex(item => item.letter === axis);
+				move.start = Math.round((axis.min + axis.max) / 2 - (axis.max - axis.min) / 4);
+				move.end = Math.round((axis.min + axis.max) / 2 + (axis.max - axis.min) / 4);
+				if (move.tool) {
+					move.start += move.tool.offsets[axisIndex];
+					move.end += move.tool.offsets[axisIndex];
+				}
+			}
+			move.axis = axis;
 		},
 		removeMove(index) {
 			this.moves.splice(index, 1);
@@ -345,7 +414,18 @@ export default {
 			let min = null, axes = move.axis.split('+');
 			for (let axis of this.move.axes) {
 				if (axes.includes(axis.letter) && (min === null || min < axis.min)) {
-					min = axis.min;
+					if (move.tool !== null) {
+						switch (axis.letter) {
+							case 'X':
+								min = axis.min + move.tool.offsets[0];
+								break;
+							case 'Y':
+								min = axis.min + move.tool.offsets[1];
+								break;
+						}
+					} else {
+						min = axis.min;
+					}
 				}
 			}
 			return start ? min : Math.max(min, move.start ?? min);
@@ -358,7 +438,18 @@ export default {
 			let max = null, axes = move.axis.split('+');
 			for (let axis of this.move.axes) {
 				if (axes.includes(axis.letter) && (max === null || max > axis.max)) {
-					max = axis.max;
+					if (move.tool !== null) {
+						switch (axis.letter) {
+							case 'X':
+								max = axis.max + move.tool.offsets[0];
+								break;
+							case 'Y':
+								max = axis.max + move.tool.offsets[1];
+								break;
+						}
+					} else {
+						max = axis.max;
+					}
 				}
 			}
 			return start ? Math.min(max, move.end ?? max) : max;
@@ -370,7 +461,11 @@ export default {
 			];
 		},
 		getAccelerometerId(accelerometer) {
-			return accelerometer ? this.accelerometers.find(item => item.value === accelerometer).text : null;
+			if (!accelerometer) {
+				return null;
+			}
+			const item = this.accelerometers.find(item => item.value === accelerometer);
+			return item ? item.text : null;
 		},
 		async doCode(code) {
 			const reply = await this.sendCode(code);
@@ -391,9 +486,13 @@ export default {
 			return filename;
 		},
 		async waitForAccelerometerRun(accelerometer) {
+			if (this.cancelled) {
+				throw new OperationCancelledError();
+			}
+
 			let resolve, reject;
 			const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
-			const unwatch = this.$watch(() => accelerometer.runs || this.cancelled, function() {
+			const unwatch = this.$watch(() => accelerometer.runs || this.cancelled, () => {
 				if (this.cancelled) {
 					reject();
 				} else {
@@ -408,31 +507,44 @@ export default {
 			move.state = MoveState.recording;
 
 			try {
+				// Deal with tool selections
 				if (move.tool) {
-					// Select the tool first
 					await this.doCode(`T${move.tool.number}`);
 					hadSelectedTool = true;
 				} else if (hadSelectedTool) {
-					// Deselect the tool again if needed
 					await this.doCode('T-1');
 					hadSelectedTool = false;
 				}
-				if (this.cancelled) { throw new OperationCancelledError(); }
+				if (this.cancelled) {
+					move.state = MoveState.cancelled;
+					throw new OperationCancelledError();
+				}
 
 				// Go to the start position
-				const startMoveParameters = move.axis.split('+').map(axis => `${axis}${move.start}`).reduce((a, b) => a + ' ' + b);
+				const moveAxes = move.axis.split('+');
+				let startMoveParameters = moveAxes.map(axis => `${axis}${move.start}`).reduce((a, b) => a + ' ' + b);
+				if (this.centerAxes) {
+					if (!moveAxes.includes('X')) {
+						startMoveParameters += move.tool ? ` X${this.xAxisCenter + move.tool.offsets[0]}` : ` X${this.xAxisCenter}`;
+					}
+					if (!moveAxes.includes('Y')) {
+						startMoveParameters += move.tool ? ` Y${this.yAxisCenter + move.tool.offsets[1]}` : ` Y${this.yAxisCenter}`;
+					}
+					if (this.showZCenter) {
+						startMoveParameters += move.tool ? ` Z${this.zAxisCenter + move.tool.offsets[2]}` : ` Z${this.zAxisCenter}`
+					}
+				}
 				await this.doCode(`G1 ${startMoveParameters} F${this.maxSpeed}`);
 				await this.doCode('G4 S1');
-				if (this.cancelled) { throw new OperationCancelledError(); }
+				if (this.cancelled) {
+					move.state = MoveState.cancelled;
+					throw new OperationCancelledError();
+				}
 
-				// Go to the end position
+				// Start sampling and move on to the end position
 				const endMoveParameters = move.axis.split('+').map(axis => `${axis}${move.end}`).reduce((a, b) => a + ' ' + b);
-				await this.doCode(`G1 ${endMoveParameters} F${this.maxSpeed}`);
-				if (this.cancelled) { throw new OperationCancelledError(); }
-
-				// Start sampling
 				const accelerometerId = this.getAccelerometerId(move.accelerometer);
-				await this.doCode(`M956 P${accelerometerId} S1000 A2 F"${this.getMoveFilename(move, accelerometerId)}"`);
+				await this.doCode(`M400 M956 P${accelerometerId} S1000 A0 F"${this.getMoveFilename(move, accelerometerId)}" G1 ${endMoveParameters} F${this.maxSpeed}`);
 				await this.waitForAccelerometerRun(move.accelerometer);
 
 				// Done, move on to the next move
@@ -491,11 +603,18 @@ export default {
 		}
 	},
 	mounted() {
+		this.run = this.lastRun + 1;
+		this.refreshCenters();
 		this.makeMoves();
 	},
 	watch: {
 		accelerometers() { this.makeMoves(); },
-		'move.axes'() { this.makeMoves(); },
+		'xAxis.min'() { this.makeMoves(); this.refreshCenters(); },
+		'xAxis.max'() { this.makeMoves(); this.refreshCenters(); },
+		'yAxis.min'() { this.makeMoves(); this.refreshCenters(); },
+		'yAxis.max'() { this.makeMoves(); this.refreshCenters(); },
+		'zAxis.min'() { this.refreshCenters(); },
+		'zAxis.max'() { this.refreshCenters(); },
 		shown(to) {
 			if (to){
 				this.run = this.lastRun + 1;
@@ -506,6 +625,11 @@ export default {
 				}
 				this.currentPage = 'start';
 				this.cancelled = this.finished = false;
+			}
+		},
+		'state.status'(to) {
+			if ((to === StatusType.disconnected || to === StatusType.off) && this.currentPage === 'collection') {
+				this.cancelled = true;
 			}
 		}
 	}

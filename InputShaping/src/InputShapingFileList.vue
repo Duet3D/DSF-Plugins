@@ -98,8 +98,14 @@
 
 		<v-checkbox v-show="!individualFiles && estimateEffect" :input-value="showOriginalValues" @change="$emit('update:showOriginalValues', $event)" label="Show original values" hide-details class="ma-3 mb-0"/>
 		<v-checkbox v-show="!individualFiles" v-model="estimateEffect" label="Estimate shaper effect" hide-details class="ma-3 mb-0"/>
-		<v-checkbox v-show="individualFiles" v-model="showSamples" label="Show samples" hide-details class="ma-3 mb-0"/>
-		<v-checkbox v-model="individualFiles" label="Use individual files" hide-details class="ma-3"/>
+		<div :class="individualFiles ? 'd-flex' : 'd-none'" class="justify-space-between ma-3 mb-0">
+			<v-checkbox :value="showSamples" @change="setShowSamples($event)" label="Show samples" hide-details class="mt-0"/>
+			<v-btn v-show="showSamples" color="primary" small :disabled="selection.length === 0" @click="showSamples = false">
+				<v-icon class="mr-1" small>mdi-poll</v-icon>
+				Analyze
+			</v-btn>
+		</div>
+		<v-checkbox v-model="individualFiles" label="Display individual files" hide-details class="ma-3"/>
 	</v-card>
 </template>
 
@@ -122,7 +128,7 @@ export default {
 			type: Array
 		},
 
-		predictShaperEffect: Boolean,
+		estimateShaperEffect: Boolean,
 		showOriginalValues: Boolean,
 		sampleStartIndex: Number,
 		sampleEndIndex: Number,
@@ -133,7 +139,7 @@ export default {
 
 		selectedFiles: Array,
 		frequencies: Array,
-		values: Object,
+		value: Object,
 		hadOverflow: Boolean
 	},
 	computed: {
@@ -142,7 +148,7 @@ export default {
 			// Convert files into profile groups with files
 			const profiles = [], uncategorized = [];
 			for (let filename of this.files) {
-				const matches = /^(\d+)-([a-zA-SU-Z]+)(\d+\.?\d*)-(\d+\.?\d*)-(\d+\.?\d*)-(\w+)[-]?(\d+\.?\d*)?(Hz)?\.csv/.exec(filename);
+				const matches = /^(\d+)-([a-zA-SU-Z]+)(-?\d+\.?\d*)-(-?\d+\.?\d*)-(\d+\.?\d*)-(\w+)-?(\d+\.?\d*)?(Hz)?\.csv/.exec(filename);
 				if (matches) {
 					const title = `Profile #${matches[1]}`;
 					let run = profiles.find(profile => profile.title === title);
@@ -163,7 +169,7 @@ export default {
 						shaperTitle
 					});
 				} else {
-					const toolMatches = /^(\d+)-T(\d+)-([a-zA-Z]+)(\d+\.?\d*)-(\d+\.?\d*)-(\d+\.?\d*)-(\w+)[-]?(\d+\.?\d*)?(Hz)?\.csv/.exec(filename);
+					const toolMatches = /^(\d+)-T(\d+)-([a-zA-Z]+)(-?\d+\.?\d*)-(-?\d+\.?\d*)-(\d+\.?\d*)-(\w+)[-]?(\d+\.?\d*)?(Hz)?\.csv/.exec(filename);
 					if (toolMatches) {
 						const title = `Profile #${toolMatches[1]}`;
 						let run = profiles.find(profile => profile.title === title);
@@ -226,7 +232,7 @@ export default {
 	},
 	data() {
 		return {
-			selection: null,
+			selection: [],
 			progress: 0,
 			progressMax: 0,
 			estimateEffect: false,
@@ -257,6 +263,13 @@ export default {
 			} finally {
 				this.progress = this.progressMax = 0;
 			}
+			this.$emit('refresh');
+		},
+		setShowSamples(value) {
+			if (!value) {
+				this.sampleStartIndex = this.sampleEndIndex = null;
+			}
+			this.showSamples = value;
 		},
 		async getSamples(filename) {
 			// Download the selected file
@@ -309,7 +322,7 @@ export default {
 
 			// Make sure all the datasets have the same sampling rate and the same count
 			// FIXME RepRapFirmware provides CSVs with varying sampling rates. For now we use the average rate...
-			const samplingRate = (datasets.length > 1) ? datasets.reduce((a, b) => a.samplingRate + b.samplingRate) / datasets.length : datasets[0].samplingRate;
+			const samplingRate = (datasets.length > 1) ? datasets.map(dataset => dataset.samplingRate).reduce((a, b) => a + b) / datasets.length : datasets[0].samplingRate;
 			const numAxes = datasets[0].samples.length, numSamples = datasets[0].samples[0].length;
 			for (let i = 1; i < datasets.length; i++) {
 				if (datasets[i].samples.length !== numAxes) {
@@ -340,7 +353,7 @@ export default {
 		},
 		async update() {
 			this.$emit('update:hadOverflow', false);
-			if (this.selection && this.selection.length > 0) {
+			if (this.selection.length > 0) {
 				this.progress = 0;
 				if (this.individualFiles && this.showSamples) {
 					this.progressMax = 1;
@@ -402,16 +415,14 @@ export default {
 	},
 	watch: {
 		selectedFiles(to) {
-			this.selection = to;
+			this.selection = to || [];
 		},
 		estimateEffect(to) {
-			if (!to) {
-				this.$emit('update:showOriginalValues', true);
-			}
+			this.$emit('update:showOriginalValues', !to);
 			this.$emit('update:estimateShaperEffect', to);
 		},
 		individualFiles(to) {
-			this.selection = null;
+			this.selection = [];
 			if (!to) {
 				this.$emit('update:showOriginalValues', true);
 			}

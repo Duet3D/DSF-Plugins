@@ -1,7 +1,6 @@
 'use strict'
 
 import { registerRoute } from '@/routes'
-//import { registerPluginData, PluginDataType } from '../../store'
 
 import InputShaping from './InputShaping.vue'
 

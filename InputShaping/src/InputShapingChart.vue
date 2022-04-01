@@ -1,5 +1,5 @@
 <template>
-	<canvas ref="chart" @mousedown="mouseDown" @mousemove="mouseMove" @mouseup="mouseUp" @mouseleave="mouseLeave" @dblclick="doubleClick"></canvas>
+	<canvas ref="chart" @mousedown="mouseDown" @mousemove="mouseMove" @dblclick="doubleClick"></canvas>
 </template>
 
 <script>
@@ -35,7 +35,7 @@ export default {
 	},
 	computed: {
 		...mapState('settings', ['darkTheme']),
-		showDamping() { return (this.amplitudes && this.durations) || !!this.inputShapers },
+		showReduction() { return ((this.amplitudes && this.durations) || (!!this.inputShapers && this.inputShapers.length > 0)) && !this.estimateShaperEffect; },
 		resolution() { return (this.frequencies && this.frequencies.length > 2) ? (this.frequencies[1] - this.frequencies[0]) : 0; },
 		lineAtPoint() {
 			let point = -1;
@@ -85,7 +85,7 @@ export default {
 					meta.hidden = meta.hidden === null ? !ci.data.datasets[index].hidden : null;
 
 					// Toggle visibility of the highlighted frequency
-					if (ci.data.datasets[index].isRingingFrequency) {
+					if (ci.data.datasets[index].isShaperFrequency) {
 						ci.config.lineAtIndex = meta.hidden ? [] : [that.lineAtPoint];
 					}
 
@@ -144,7 +144,7 @@ export default {
 						}
 					},
 					{
-						display: this.showDamping && this.value && (Object.keys(this.value).length > 0) && !this.estimateShaperEffect,
+						display: this.showReduction,
 						gridLines: {
 							display: true
 						},
@@ -152,7 +152,7 @@ export default {
 						position: this.value ? 'right' : 'left',
 						scaleLabel: {
 							display: true,
-							labelString: 'Damping Factor'
+							labelString: 'Reduction Factor'
 						},
 						ticks: {
 							min: 0,
@@ -163,8 +163,6 @@ export default {
 			},
 			tooltips: {
 				enabled: true,
-				mode: 'index',
-				intersect: false,
 				callbacks: {
 					label(tooltipItem, data) {
 						let label = data.datasets[tooltipItem.datasetIndex].label || '';
@@ -269,8 +267,8 @@ export default {
 					borderColor: '#1010FF',
 					backgroundColor: '#1010FF',
 					data: [],
-					label: 'Ringing Frequency',
-					isRingingFrequency: true
+					label: 'Shaper Frequency',
+					isShaperFrequency: true
 				};
 				this.chart.data.datasets.push(dataset);
 			} else {
@@ -360,24 +358,45 @@ export default {
 			}
 
 			// Check if a frequency is supposed to be highlighted. Attempt to add this here again in case it wasn't added before
-			if (!this.chart.data.datasets.find(dataset => dataset.isRingingFrequency) && this.lineAtPoint !== -1 && this.chart.data.datasets.length > 0) {
+			if (!this.chart.data.datasets.find(dataset => dataset.isShaperFrequency) && this.lineAtPoint !== -1 && this.chart.data.datasets.length > 0) {
 				this.chart.config.lineAtIndex = [this.lineAtPoint];
 
 				const dataset = {
 					borderColor: '#1010FF',
 					backgroundColor: '#1010FF',
 					data: [],
-					label: 'Ringing Frequency',
-					isRingingFrequency: true
+					label: 'Shaper Frequency',
+					isShaperFrequency: true
 				};
 				this.chart.data.datasets.push(dataset);
 			}
 
-			// Restore visibility
+			// Limit number of frequencies
+			if (this.frequencies && this.frequencies.length > 0) {
+				let maxFrequencyIndex = -1;
+				for (let freq of this.frequencies) {
+					if (Math.round(freq) > 100) {
+						break;
+					}
+					maxFrequencyIndex++;
+				}
+
+				if (maxFrequencyIndex > 0) {
+					for (let dataset of this.chart.data.datasets) {
+						if (!this.isShaperFrequency) {
+							dataset.data.splice(maxFrequencyIndex + 1);
+						}
+					}
+					this.chart.data.labels.splice(maxFrequencyIndex + 1);
+					this.chart.config.options.scales.xAxes[0].ticks.max = maxFrequencyIndex;
+				}
+			}
+
+			// Finish setup
 			this.chart.options.scales.xAxes[0].scaleLabel.labelString = (this.frequencies && this.frequencies.length > 0) ? 'Frequency (in Hz)' : 'Sample';
 			this.chart.options.scales.yAxes[0].scaleLabel.labelString = (this.frequencies && this.frequencies.length > 0) ? 'Amplitude' : 'Acceleration (in g)';
 			this.chart.options.scales.yAxes[0].display = !!this.value;
-			this.chart.options.scales.yAxes[1].display = this.showDamping && !this.estimateShaperEffect;
+			this.chart.options.scales.yAxes[1].display = this.showReduction;
 			this.chart.options.scales.yAxes[1].position = this.value ? 'right' : 'left';
 			for (let dataset of this.chart.data.datasets) {
 				if (hiddenDatasets.includes(dataset.label)) {
@@ -406,6 +425,8 @@ export default {
 				this.dragStart = activePoints[0]._index;
 				this.chart.config.range = { start: e.layerX };
 				this.chart.update();
+
+				document.addEventListener('mouseup', this.mouseUp);
 			}
 		},
 		mouseMove(e) {
@@ -415,7 +436,8 @@ export default {
 			}
 		},
 		mouseUp(e) {
-			let update = false;
+			document.removeEventListener('mouseup', this.mouseUp);
+
 			if (this.chart.config.range && this.chart.config.range.end) {
 				const activePoints = this.chart.getElementsAtEventForMode(e, 'nearest', {intersect: false});
 				if (activePoints && activePoints.length > 0) {
@@ -424,16 +446,13 @@ export default {
 						const trueStart = Math.min(this.dragStart, dragEnd), trueEnd = Math.max(this.dragStart, dragEnd);
 						this.$emit('update:sampleStartIndex', trueStart);
 						this.$emit('update:sampleEndIndex', trueEnd);
-						update = true;
 					}
 					this.dragStart = null;
 				}
 			}
 
 			this.chart.config.range = null;
-			if (update) {
-				this.chart.update();
-			}
+			this.chart.update();
 		},
 		mouseLeave() {
 			if (this.chart.config.range) {

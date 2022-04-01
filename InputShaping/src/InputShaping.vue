@@ -76,6 +76,10 @@ th {
 									Please select a Motion Profile
 								</v-col>
 								<v-col v-show="!!filesToAnalyze.length" :class="!!filesToAnalyze.length ? 'd-flex' : 'd-none'" class="flex-column pa-0">
+									<v-alert :value="hadOverflow" type="warning" class="mb-0">
+										The selected motion profile contains overflows. It may not be accurate.
+									</v-alert>
+
 									<v-card outlined class="d-block fill-height pa-2">
 										<input-shaping-chart    can-show-samples :sample-start-index.sync="sampleStartIndex" :sample-end-index.sync="sampleEndIndex"
 																:frequencies="fileFrequenciesToAnalyze" :value="fileDataToAnalyze" :ringing-frequency="frequency"
@@ -83,10 +87,6 @@ th {
 																:custom-amplitudes="customAmplitudes" :custom-durations="customDurations"
 																:estimate-shaper-effect="estimateShaperEffect" :show-values="showOriginalValues"
 										/>
-									</v-card>
-
-									<v-card v-if="hadOverflow" flat class="ma-1 pt-1 pb-2">
-										Warning: The selected motion profile contains overflows. It may not be accurate.
 									</v-card>
 								</v-col>
 							</v-row>
@@ -110,6 +110,8 @@ th {
 					<input-shaper-checkbox v-model="inputShapers" value="zvddd" :current="shaping.type"/>
 					<input-shaper-checkbox v-model="inputShapers" value="ei2" :current="shaping.type"/>
 					<input-shaper-checkbox v-model="inputShapers" value="ei3" :current="shaping.type"/>
+					<!-- Cannot enable custom shapers before a missing enum value is rolled out as part of DSF 3.4.1+ -->
+					<!--
 					<input-shaper-checkbox v-model="inputShapers" value="custom" :current="shaping.type">
 						<v-menu v-model="customMenu" offset-y left :close-on-content-click="false" :max-width="380" ref="customMenu">
 							<template #activator="{ on, attrs }">
@@ -165,10 +167,11 @@ th {
 							</v-card>
 						</v-menu>
 					</input-shaper-checkbox>
+					-->
 
 					<v-divider class="mt-3"/>
 
-					<v-text-field type="number" min="10" step="1" max="1000" v-model.number="frequency" :disabled="uiFrozen" label="Ringing Frequency" class="mt-3" hide-details @keydown.enter.prevent="setFrequency" @blur="$nextTick(() => frequency = shaping.frequency)">
+					<v-text-field type="number" min="10" step="1" max="1000" v-model.number="frequency" :disabled="uiFrozen" label="Shaper centre frequency" class="mt-3" hide-details @keydown.enter.prevent="setFrequency">
 						<template #append>
 							Hz
 						</template>
@@ -177,7 +180,7 @@ th {
 						</template>
 					</v-text-field>
 
-					<v-text-field type="number" min="0.01" step="0.01" max="0.99" v-model.number="damping" :disabled="uiFrozen" label="Damping Factor" class="mt-3" hide-details @keydown.enter.prevent="setDamping" @blur="$nextTick(() => damping = shaping.damping)">
+					<v-text-field type="number" min="0.01" step="0.01" max="0.99" v-model.number="damping" :disabled="uiFrozen" label="Damping factor" class="mt-3" hide-details @keydown.enter.prevent="setDamping">
 						<template #append-outer>
 							<v-icon class="ml-1" :disabled="!canSetDamping" @click="setDamping">mdi-check</v-icon>
 						</template>
