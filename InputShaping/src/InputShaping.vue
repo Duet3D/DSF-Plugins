@@ -439,7 +439,11 @@ export default {
 			this.damping = to;
 		},
 		numCustomCoefficients() {
-			this.$nextTick(() => this.$refs.customMenu.updateDimensions());
+			this.$nextTick(() => {
+				if (this.$refs.customMenu) {
+					this.$refs.customMenu.updateDimensions();
+				}
+			});
 		},
 		selectedMachine() {
 			this.refresh();

@@ -124,6 +124,7 @@
 									<v-text-field v-show="showZCenter" type="number" class="ml-5" v-model.number="zAxisCenter" label="Z axis centre position" :rules="[(val) => !isNaN(val) && val >= zAxis.min && val <= zAxis.max]"/>
 								</div>
 							</div>
+							<v-checkbox class="my-2" v-model="recordWholeMove" label="Capture data during the whole length of the move" :ripple="false" hide-details/>
 
 							The machine will record a new Motion Profile as soon as Next is clicked.
 						</div>
@@ -330,6 +331,7 @@ export default {
 			xAxisCenter: 0,
 			yAxisCenter: 0,
 			zAxisCenter: 0,
+			recordWholeMove: true,
 			run: 0,
 			finished: false,
 			cancelled: false
@@ -544,7 +546,11 @@ export default {
 				// Start sampling and move on to the end position
 				const endMoveParameters = move.axis.split('+').map(axis => `${axis}${move.end}`).reduce((a, b) => a + ' ' + b);
 				const accelerometerId = this.getAccelerometerId(move.accelerometer);
-				await this.doCode(`M400 M956 P${accelerometerId} S1000 A0 F"${this.getMoveFilename(move, accelerometerId)}" G1 ${endMoveParameters} F${this.maxSpeed}`);
+				if (this.recordWholeMove) {
+					await this.doCode(`M400 M956 P${accelerometerId} S1000 A0 F"${this.getMoveFilename(move, accelerometerId)}" G1 ${endMoveParameters} F${this.maxSpeed}`);
+				} else {
+					await this.doCode(`G1 ${endMoveParameters} F${this.maxSpeed} M400 M956 P${accelerometerId} S1000 A0 F"${this.getMoveFilename(move, accelerometerId)}"`);
+				}
 				await this.waitForAccelerometerRun(move.accelerometer);
 
 				// Done, move on to the next move
