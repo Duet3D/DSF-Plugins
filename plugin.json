@@ -1,0 +1,15 @@
+{
+  "id": "MotionWebcamServer",
+  "name": "Motion Webcam Server",
+  "author": "Duet3D Ltd",
+  "version": "3.4.0",
+  "license": "GPL-2.0-only",
+  "homepage": "https://github.com/Duet3D/DSF-Plugins",
+  "sbcRequired": true,
+  "sbcDsfVersion": "3.4",
+  "sbcExecutable": "motion",
+  "sbcExecutableArguments": "-c /opt/dsf/sd/sys/motion.conf",
+  "sbcOutputRedirected": false,
+  "sbcPackageDependencies": ["libavcodec58", "libavdevice58", "libavformat58", "libavutil56", "libc6", "libgnutls30", "libjpeg62-turbo", "libmariadb3", "libmicrohttpd12", "libpq5", "libsqlite3-0", "libswscale5", "libwebp6", "libwebpmux3", "zlib1g"],
+  "sbcPermissions": ["networkAccess", "webcamAccess", "readSystem"]
+}
