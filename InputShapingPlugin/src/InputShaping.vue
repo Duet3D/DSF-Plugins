@@ -110,8 +110,6 @@ th {
 					<input-shaper-checkbox v-model="inputShapers" value="zvddd" :current="shaping.type"/>
 					<input-shaper-checkbox v-model="inputShapers" value="ei2" :current="shaping.type"/>
 					<input-shaper-checkbox v-model="inputShapers" value="ei3" :current="shaping.type"/>
-					<!-- Cannot enable custom shapers before a missing enum value is rolled out as part of DSF 3.4.1+ -->
-					<!--
 					<input-shaper-checkbox v-model="inputShapers" value="custom" :current="shaping.type">
 						<v-menu v-model="customMenu" offset-y left :close-on-content-click="false" :max-width="380" ref="customMenu">
 							<template #activator="{ on, attrs }">
@@ -167,7 +165,6 @@ th {
 							</v-card>
 						</v-menu>
 					</input-shaper-checkbox>
-					-->
 
 					<v-divider class="mt-3"/>
 
