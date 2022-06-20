@@ -283,11 +283,15 @@ export default {
 			return this.boards.some(board => (board.canAddress !== 0) && !!board.accelerometer);
 		},
 		toolList() {
-			return [{ text: 'None', value: null }].concat(this.tools
-				.map(tool => ({
-					text: tool.name || tool.number.toString(),
-					value: tool
-				})));
+			return [{ text: 'None', value: null }]
+				.concat(
+					this.tools
+						.filter(tool => !!tool)
+						.map(tool => ({
+							text: tool.name || tool.number.toString(),
+							value: tool
+						})
+				));
 		},
 		showZCenter() {
 			return [KinematicsName.delta, KinematicsName.rotaryDelta, KinematicsName.coreXZ].includes(this.move.kinematics.name);

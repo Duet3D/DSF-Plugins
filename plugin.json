@@ -2,8 +2,8 @@
   "id": "InputShaping",
   "name": "Input Shaping",
   "author": "Duet3D Ltd",
-  "version": "3.4.0-b1",
+  "version": "3.4.1-b1",
   "license": "GPL-3.0-or-later",
   "homepage": "https://github.com/Duet3D/DSF-Plugins",
-  "dwcVersion": "auto"
+  "dwcVersion": "3.4"
 }
