@@ -6,6 +6,10 @@
 	flex-wrap: nowrap;
 	white-space: nowrap;
 }
+.file-list {
+	overflow: auto;
+	height: 500px;
+}
 </style>
 
 <template>
@@ -25,7 +29,7 @@
 
 		<template v-if="profiles.length > 0">
 			<template v-if="!individualFiles">
-				<v-list class="py-0" :disabled="uiFrozen || progress !== progressMax" dense>
+				<v-list class="py-0 file-list" :disabled="uiFrozen || progress !== progressMax" dense>
 					<v-list-item-group color="primary" v-model="selection">
 						<v-list-item v-for="(profile, index) in profiles" :key="index" :value="profile.files.map(item => item.filename)" two-line v-ripple>
 							<v-list-item-icon class="align-self-center">
@@ -51,7 +55,7 @@
 				</v-list>
 			</template>
 			<template v-else>
-				<v-list class="py-0" :disabled="uiFrozen || progress !== progressMax" dense>
+				<v-list class="py-0 file-list" :disabled="uiFrozen || progress !== progressMax" dense>
 					<v-list-group v-for="(profile, index) in profiles" :key="index">
 						<template #activator>
 							<v-list-item-icon class="align-self-center">
