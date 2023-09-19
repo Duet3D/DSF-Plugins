@@ -125,6 +125,7 @@
 								</div>
 							</div>
 							<v-checkbox class="my-2" v-model="recordWholeMove" label="Capture data during the whole length of the move" :ripple="false" hide-details/>
+							<v-checkbox class="my-2" v-model="disableMesh" label="Disable Mesh Bedleveling (Could cause artifacts)" :ripple="false" hide-details/>
 
 							The machine will record a new Motion Profile as soon as Next is clicked.
 						</div>
@@ -336,6 +337,7 @@ export default {
 			yAxisCenter: 0,
 			zAxisCenter: 0,
 			recordWholeMove: true,
+			disableMesh: false,
 			run: 0,
 			finished: false,
 			cancelled: false
@@ -551,8 +553,14 @@ export default {
 				const endMoveParameters = move.axis.split('+').map(axis => `${axis}${move.end}`).reduce((a, b) => a + ' ' + b);
 				const accelerometerId = this.getAccelerometerId(move.accelerometer);
 				if (this.recordWholeMove) {
+					if (this.disableMesh) {
+						await this.doCode(`G29 S2`);
+					}
 					await this.doCode(`M400 M956 P${accelerometerId} S1000 A0 F"${this.getMoveFilename(move, accelerometerId)}" G1 ${endMoveParameters} F${this.maxSpeed}`);
 				} else {
+					if (this.disableMesh) {
+						await this.doCode(`G29 S2`);
+					}
 					await this.doCode(`G1 ${endMoveParameters} F${this.maxSpeed} M400 M956 P${accelerometerId} S1000 A0 F"${this.getMoveFilename(move, accelerometerId)}"`);
 				}
 				await this.waitForAccelerometerRun(move.accelerometer);
